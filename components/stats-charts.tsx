@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import {
-  ResponsiveContainer,
   LineChart,
   Line,
   XAxis,
@@ -188,19 +187,17 @@ export default function StatsCharts({
             </div>
 
             <div style={{ width: "100%", height: 300, marginTop: "1rem" }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={exerciseSeries}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis yAxisId="left" />
-                  <YAxis yAxisId="right" orientation="right" />
-                  <Tooltip />
-                  <Legend />
-                  <Line yAxisId="left" type="monotone" dataKey="weight" stroke="#2563eb" name="Best weight" />
-                  <Line yAxisId="left" type="monotone" dataKey="est1RM" stroke="#16a34a" name="Est 1RM" />
-                  <Line yAxisId="right" type="monotone" dataKey="reps" stroke="#dc2626" name="Best reps" />
-                </LineChart>
-              </ResponsiveContainer>
+              <LineChart width={800} height={300} data={exerciseSeries}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis yAxisId="left" />
+                <YAxis yAxisId="right" orientation="right" />
+                <Tooltip />
+                <Legend />
+                <Line yAxisId="left" type="monotone" dataKey="weight" stroke="#2563eb" name="Best weight" />
+                <Line yAxisId="left" type="monotone" dataKey="est1RM" stroke="#16a34a" name="Est 1RM" />
+                <Line yAxisId="right" type="monotone" dataKey="reps" stroke="#dc2626" name="Best reps" />
+              </LineChart>
             </div>
 
             <table style={{ marginTop: "1rem" }}>
@@ -246,30 +243,26 @@ export default function StatsCharts({
         </select>
 
         <div style={{ width: "100%", height: 300, marginTop: "1rem" }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={muscleGroupSeries}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="week" />
-              <YAxis />
-              <Tooltip />
-              <Line type="monotone" dataKey="sets" stroke="#2563eb" name="Working sets" />
-            </LineChart>
-          </ResponsiveContainer>
+          <LineChart width={800} height={300} data={muscleGroupSeries}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="week" />
+            <YAxis />
+            <Tooltip />
+            <Line type="monotone" dataKey="sets" stroke="#2563eb" name="Working sets" />
+          </LineChart>
         </div>
       </section>
 
       <section className="card">
         <h2>Consistency (sessions per week)</h2>
         <div style={{ width: "100%", height: 300 }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={consistencySeries}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="week" />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="sessions" fill="#2563eb" name="Sessions" />
-            </BarChart>
-          </ResponsiveContainer>
+          <BarChart width={800} height={300} data={consistencySeries}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="week" />
+            <YAxis />
+            <Tooltip />
+            <Bar dataKey="sessions" fill="#2563eb" name="Sessions" />
+          </BarChart>
         </div>
       </section>
     </div>
