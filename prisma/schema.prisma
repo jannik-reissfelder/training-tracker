@@ -1,0 +1,63 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Exercise {
+  id              String   @id @default(cuid())
+  name            String   @unique
+  muscleGroups    String[]
+  movementPattern String?
+  isSystem        Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  SetEntries SetEntry[]
+}
+
+model Workout {
+  id        String    @id @default(cuid())
+  date      DateTime  @default(now())
+  notes     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  SetEntries SetEntry[]
+}
+
+model SetEntry {
+  id         String   @id @default(cuid())
+  workoutId  String
+  exerciseId String
+  reps       Int
+  weight     Float
+  unit       String
+  rir        Int?
+  rpe        Float?
+  notes      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  Workout  Workout  @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  Exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Restrict)
+}
+
+model Config {
+  id                   String  @id @default("default")
+  splitType            String  @default("full body")
+  frequencyMin         Int     @default(2)
+  frequencyMax         Int     @default(3)
+  primaryGoal          String  @default("hypertrophy + functional fitness")
+  targetSetsPerExercise Int    @default(2)
+  stagnationWindowWeeks Int    @default(4)
+  volumeBaselineWeeks  Int     @default(4)
+  volumeDropThreshold  Int     @default(2)
+  consistencyWindowWeeks Int   @default(2)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}

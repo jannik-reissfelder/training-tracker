@@ -1,36 +1,72 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Training Tracker
 
-## Getting Started
+A single-user personal training log and progress app, built with Next.js, Prisma, and Vercel.
 
-First, run the development server:
+## Features
+
+1. **Training log**: seeded exercise library, create/select exercises, log workouts with sets, edit/delete entries.
+2. **Statistics**: per-exercise weight/reps/est 1RM and volume charts; per-muscle-group weekly volume; weekly session consistency.
+3. **Coach**: two-stage deterministic rules engine + LLM phrasing via Gemini, on-demand Coach's Note.
+
+## Database
+
+I chose **Vercel Postgres** (Neon) because it is the Vercel-native Postgres offering and is the quickest to provision for a single-user, low-volume app. It is serverless, no separate account to manage, and integrates directly with Vercel environment variables.
+
+## Environment variables
+
+Copy `.env.example` to `.env` locally and set all values for Vercel:
+
+- `DATABASE_URL` — Vercel Postgres pooled connection (`POSTGRES_PRISMA_URL` if using Vercel's preset).
+- `DIRECT_URL` — Vercel Postgres direct connection (`POSTGRES_URL` if using Vercel's preset).
+- `APP_PASSPHRASE` — single shared passphrase that gates the app.
+- `GEMINI_API_KEY` — Google AI Studio API key for Coach phrasing.
+
+## Local development
 
 ```bash
+npm install
+# Ensure a Postgres database is running and DATABASE_URL/DIRECT_URL are set.
+npx prisma migrate dev
+npx prisma db seed
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) and sign in with `APP_PASSPHRASE`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Tests
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run test
+```
 
-## Learn More
+## Lint
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm run lint
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Deploy to Vercel
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+vercel --prod
+```
 
-## Deploy on Vercel
+The build command runs `prisma generate`, `prisma migrate deploy`, `prisma db seed`, and `next build`. Migrations are applied automatically and seed runs idempotently on each deploy.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## How to provision Vercel Postgres
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. In the Vercel dashboard for the project, go to **Storage** and create a new **Postgres** database (Neon) via the Vercel Marketplace.
+2. Connect the database to the project. This will add `POSTGRES_URL`, `POSTGRES_PRISMA_URL`, `POSTGRES_URL_NON_POOLING`, etc. as environment variables.
+3. Set `DATABASE_URL` to `POSTGRES_PRISMA_URL` and `DIRECT_URL` to `POSTGRES_URL`.
+4. Set `APP_PASSPHRASE` and `GEMINI_API_KEY`.
+
+After provisioning, deploy as usual. The first deploy will run migrations and seed the starter exercise library.
+
+## Training philosophy
+
+A placeholder for the grounding document is at `docs/training-philosophy.md`. The Coach's system prompt reads this file at request time and falls back to the stored config when the placeholder is still present.
+
+## Notes
+
+- Single user only, no signup. Auth is a simple passphrase cookie session.
+- Stage A rules are pure, deterministic, and fully unit-tested. Stage B is a mockable LLM phrasing pass.
