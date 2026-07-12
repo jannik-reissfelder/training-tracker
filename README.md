@@ -17,7 +17,7 @@ I chose **Vercel Postgres** (Neon) because it is the Vercel-native Postgres offe
 Copy `.env.example` to `.env` locally and set all values for Vercel:
 
 - `DATABASE_URL` — Vercel Postgres pooled connection (`POSTGRES_PRISMA_URL` if using Vercel's preset).
-- `DIRECT_URL` — Vercel Postgres direct connection (`POSTGRES_URL` if using Vercel's preset).
+- `DIRECT_URL` — Vercel Postgres direct connection (`POSTGRES_URL` or `DATABASE_URL_UNPOOLED` if using Vercel's preset).
 - `APP_PASSPHRASE` — single shared passphrase that gates the app.
 - `GEMINI_API_KEY` — Google AI Studio API key for Coach phrasing.
 
