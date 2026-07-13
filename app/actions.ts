@@ -3,7 +3,8 @@
 import { createSession, destroySession, verifySession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getCoachNote as coachNote } from "@/lib/coach";
-import type { CoachConfig } from "@/lib/coach/rules";
+import { explainSignal as explainSignalWithGemini } from "@/lib/coach/explain";
+import type { CoachConfig, Signal } from "@/lib/coach/rules";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
@@ -64,6 +65,32 @@ export async function getCoachNote() {
       consistencyWindowWeeks: 2,
     },
   });
+}
+
+export async function explainSignal(signal: Signal) {
+  if (!(await verifySession())) {
+    throw new Error("Unauthorized");
+  }
+
+  const config = await prisma.config.findUnique({ where: { id: "default" } });
+  const configValues: CoachConfig = config ?? {
+    splitType: "full body",
+    frequencyMin: 2,
+    frequencyMax: 3,
+    primaryGoal: "hypertrophy + functional fitness",
+    targetSetsPerExercise: 2,
+    stagnationWindowWeeks: 4,
+    volumeBaselineWeeks: 4,
+    volumeDropThreshold: 2,
+    consistencyWindowWeeks: 2,
+  };
+
+  try {
+    return await explainSignalWithGemini(signal, configValues);
+  } catch (error) {
+    console.error("explainSignal failed:", error);
+    return "Could not analyze this signal right now. Please try again.";
+  }
 }
 
 export async function createWorkout(formData: FormData) {

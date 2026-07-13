@@ -22,7 +22,7 @@ interface GetCoachNoteInput {
   llm?: LLM;
 }
 
-async function readPhilosophy(): Promise<string | null> {
+export async function readPhilosophy(): Promise<string | null> {
   try {
     const path = join(process.cwd(), "docs", "training-philosophy.md");
     const content = await readFile(path, "utf-8");
@@ -36,11 +36,11 @@ async function readPhilosophy(): Promise<string | null> {
   }
 }
 
-function getConfig(config: CoachConfig): string {
+export function getConfig(config: CoachConfig): string {
   return `Split: ${config.splitType}. Frequency target: ${config.frequencyMin}-${config.frequencyMax}x/week. Primary goal: ${config.primaryGoal}. Target sets per exercise: ${config.targetSetsPerExercise}.`;
 }
 
-function buildSystemPrompt(config: CoachConfig, philosophy: string | null): string {
+export function buildSystemPrompt(config: CoachConfig, philosophy: string | null): string {
   const base = [
     "You are a direct, no-bullshit training coach for a single user.",
     "Keep the note short (2-4 sentences) and grounded only in the data provided.",
@@ -70,7 +70,7 @@ function buildUserPrompt(config: CoachConfig, signals: Signal[]): string {
 export async function getCoachNote({
   entries,
   config,
-  llm = defaultLLM,
+  llm = callGemini,
 }: GetCoachNoteInput): Promise<string> {
   const today = new Date();
   const signals = analyze(entries, config, today);
@@ -93,10 +93,19 @@ function fallbackNote(signals: Signal[]): string {
   return signals.map((s) => s.message).join(" ");
 }
 
-async function defaultLLM(input: LLMInput): Promise<string> {
+const PRIMARY_MODEL = "gemini-3.5-flash";
+const FALLBACK_MODEL = "gemini-3.1-flash-lite";
+
+export async function callGemini(input: LLMInput): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey || apiKey === "mock") {
     throw new Error("GEMINI_API_KEY is not configured");
   }
-  return generateGemini({ ...input, apiKey });
+
+  try {
+    return await generateGemini({ ...input, apiKey, model: PRIMARY_MODEL, timeoutMs: 15000 });
+  } catch (primaryError) {
+    console.error(`Coach primary model ${PRIMARY_MODEL} failed, trying fallback ${FALLBACK_MODEL}:`, primaryError);
+    return generateGemini({ ...input, apiKey, model: FALLBACK_MODEL, timeoutMs: 15000 });
+  }
 }
