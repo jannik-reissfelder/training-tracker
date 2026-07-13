@@ -25,6 +25,8 @@ export interface SetEntry {
   reps: number;
   weight: number;
   unit: string;
+  rir?: number;
+  rpe?: number;
 }
 
 export interface CoachConfig {

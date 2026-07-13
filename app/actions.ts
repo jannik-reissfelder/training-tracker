@@ -49,6 +49,8 @@ export async function getCoachNote() {
     reps: e.reps,
     weight: e.weight,
     unit: e.unit,
+    rir: e.rir ?? undefined,
+    rpe: e.rpe ?? undefined,
   }));
 
   return coachNote({

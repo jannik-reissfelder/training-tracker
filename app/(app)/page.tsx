@@ -2,8 +2,10 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { analyze } from "@/lib/coach/rules";
 import type { CoachConfig } from "@/lib/coach/rules";
+import { judgeProgress } from "@/lib/judge";
 import CoachNote from "@/components/coach-note";
 import SignalAlerts from "@/components/signal-alerts";
+import ProgressVerdict from "@/components/progress-verdict";
 
 const DEFAULT_CONFIG: CoachConfig = {
   splitType: "full body",
@@ -51,9 +53,13 @@ export default async function DashboardPage() {
     reps: e.reps,
     weight: e.weight,
     unit: e.unit,
+    rir: e.rir ?? undefined,
+    rpe: e.rpe ?? undefined,
+    createdAt: e.createdAt,
   }));
 
   const signals = analyze(entries, configValues, new Date());
+  const verdict = judgeProgress(entries, configValues, new Date());
 
   return (
     <div className="stack">
@@ -67,6 +73,8 @@ export default async function DashboardPage() {
         <p className="muted">Exercises in library: {exerciseCount}</p>
         <p className="muted">Recent workouts: {recentWorkouts.length}</p>
       </section>
+
+      <ProgressVerdict verdict={verdict} />
 
       <SignalAlerts signals={signals} />
 
