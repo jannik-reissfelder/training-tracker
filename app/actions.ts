@@ -288,6 +288,63 @@ export async function deleteSet(formData: FormData) {
   revalidatePath(`/workouts/${workoutId}`);
 }
 
+export async function addExerciseSets({
+  workoutId,
+  exerciseId,
+  sets,
+}: {
+  workoutId: string;
+  exerciseId: string;
+  sets: { reps: number | string; weight: number | string; unit: string; rir?: number | string; rpe?: number | string; notes?: string }[];
+}) {
+  const workout = await prisma.workout.findUnique({ where: { id: workoutId } });
+  if (!workout) {
+    throw new Error("Workout not found");
+  }
+
+  const exercise = await prisma.exercise.findUnique({ where: { id: exerciseId } });
+  if (!exercise) {
+    throw new Error("Exercise not found");
+  }
+
+  const validSets = sets.filter((s) => {
+    const reps = typeof s.reps === "string" ? s.reps.trim() : String(s.reps);
+    const weight = typeof s.weight === "string" ? s.weight.trim() : String(s.weight);
+    return reps !== "" && weight !== "" && !Number.isNaN(Number(reps)) && !Number.isNaN(Number(weight));
+  });
+
+  if (validSets.length === 0) {
+    throw new Error("No valid sets to add");
+  }
+
+  const baseCreatedAt = new Date();
+  await prisma.$transaction(async (tx) => {
+    for (let i = 0; i < validSets.length; i++) {
+      const s = validSets[i];
+      const reps = typeof s.reps === "string" ? Number(s.reps.trim()) : Number(s.reps);
+      const weight = typeof s.weight === "string" ? Number(s.weight.trim()) : Number(s.weight);
+      const rir = s.rir ? (typeof s.rir === "string" ? Number(s.rir.trim()) : Number(s.rir)) : null;
+      const rpe = s.rpe ? (typeof s.rpe === "string" ? Number(s.rpe.trim()) : Number(s.rpe)) : null;
+      const notes = s.notes?.trim() || null;
+      await tx.setEntry.create({
+        data: {
+          workoutId,
+          exerciseId,
+          reps,
+          weight,
+          unit: s.unit || "kg",
+          rir: rir && !Number.isNaN(rir) ? rir : null,
+          rpe: rpe && !Number.isNaN(rpe) ? rpe : null,
+          notes,
+          createdAt: new Date(baseCreatedAt.getTime() + i * 1000),
+        },
+      });
+    }
+  });
+
+  revalidatePath(`/workouts/${workoutId}`);
+}
+
 export async function createExercise(_prevState: { error: string }, formData: FormData) {
   const name = (formData.get("name") as string).trim();
   const muscleGroups = (formData.get("muscleGroups") as string)

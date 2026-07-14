@@ -492,6 +492,12 @@ function buildHeadline(status: ProgressStatus, observations: Observation[]): str
   }
 }
 
+function isColdStart(sessions: SessionSummary[], today: Date): boolean {
+  if (sessions.length === 0) return false;
+  const daysSinceFirst = (today.getTime() - sessions[0].date.getTime()) / (1000 * 60 * 60 * 24);
+  return sessions.length < 2 || (sessions.length < 3 && daysSinceFirst < 7);
+}
+
 export function judgeProgress(entries: JudgeEntry[], config: CoachConfig, today = new Date()): ProgressVerdict {
   const sessions = summarizeSessions(entries);
   const seriesMap = sessionsByExercise(sessions);
@@ -504,8 +510,13 @@ export function judgeProgress(entries: JudgeEntry[], config: CoachConfig, today 
   observations.push(...volumeLoadObservations(seriesMap, today));
   observations.push(...setDropoffObservations(entries, today));
 
-  const status = determineStatus(observations);
-  const headline = buildHeadline(status, observations);
+  let status = determineStatus(observations);
+  let headline = buildHeadline(status, observations);
+
+  if (isColdStart(sessions, today)) {
+    status = "insufficient-data";
+    headline = "Baseline set — log a few more sessions over the next 1-2 weeks to get your first progress verdict.";
+  }
 
   return { status, headline, observations };
 }

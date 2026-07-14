@@ -203,6 +203,12 @@ function analyzeVolumeDrop(entries: SetEntry[], config: CoachConfig, today: Date
 
 function analyzeConsistencyDrop(entries: SetEntry[], config: CoachConfig, today: Date): Signal[] {
   const signals: Signal[] = [];
+
+  if (entries.length === 0) return signals;
+  const firstDate = entries.reduce((min, e) => (e.date < min ? e.date : min), today);
+  const daysSinceFirst = (today.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24);
+  if (daysSinceFirst < 7) return signals;
+
   const windowStart = weeksAgo(config.consistencyWindowWeeks, today);
   const sessions = new Set<string>();
 
