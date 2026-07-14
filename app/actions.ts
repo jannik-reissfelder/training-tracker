@@ -4,7 +4,9 @@ import { createSession, destroySession, verifySession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getCoachNote as coachNote } from "@/lib/coach";
 import { explainSignal as explainSignalWithGemini } from "@/lib/coach/explain";
-import type { CoachConfig, Signal } from "@/lib/coach/rules";
+import { analyze, type CoachConfig, type Signal } from "@/lib/coach/rules";
+import { buildSystemPrompt, getConfig, readPhilosophy, callGemini } from "@/lib/coach";
+import { judgeProgress, type JudgeEntry, type ProgressVerdict } from "@/lib/judge";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
@@ -92,6 +94,110 @@ export async function explainSignal(signal: Signal) {
   } catch (error) {
     console.error("explainSignal failed:", error);
     return "Could not analyze this signal right now. Please try again.";
+  }
+}
+
+const DEFAULT_CONFIG: CoachConfig = {
+  splitType: "full body",
+  frequencyMin: 2,
+  frequencyMax: 3,
+  primaryGoal: "hypertrophy + functional fitness",
+  targetSetsPerExercise: 2,
+  stagnationWindowWeeks: 4,
+  volumeBaselineWeeks: 4,
+  volumeDropThreshold: 2,
+  consistencyWindowWeeks: 2,
+};
+
+async function loadJudgeEntries(): Promise<JudgeEntry[]> {
+  const since = new Date();
+  since.setDate(since.getDate() - 12 * 7);
+
+  const dbEntries = await prisma.setEntry.findMany({
+    where: {
+      Workout: { date: { gte: since } },
+    },
+    include: { Workout: true, Exercise: true },
+    orderBy: { createdAt: "asc" },
+  });
+
+  return dbEntries.map((e) => ({
+    date: e.Workout.date,
+    workoutId: e.workoutId,
+    exerciseId: e.exerciseId,
+    exerciseName: e.Exercise.name,
+    muscleGroups: e.Exercise.muscleGroups,
+    reps: e.reps,
+    weight: e.weight,
+    unit: e.unit,
+    rir: e.rir ?? undefined,
+    rpe: e.rpe ?? undefined,
+    createdAt: e.createdAt,
+  }));
+}
+
+async function loadConfig(): Promise<CoachConfig> {
+  const config = await prisma.config.findUnique({ where: { id: "default" } });
+  return config ?? DEFAULT_CONFIG;
+}
+
+async function computeVerdict(): Promise<{ verdict: ProgressVerdict; config: CoachConfig }> {
+  const [entries, config] = await Promise.all([loadJudgeEntries(), loadConfig()]);
+  const verdict = judgeProgress(entries, config, new Date());
+  return { verdict, config };
+}
+
+export async function analyzeStats() {
+  if (!(await verifySession())) {
+    throw new Error("Unauthorized");
+  }
+
+  const { verdict, config } = await computeVerdict();
+
+  const systemPrompt = `You are a ruthless, no-fluff performance analyst. Your only job is to look at the user's training metrics and state the brutal truth about whether they are progressing, stalling, or declining.
+
+Rules:
+- Use the exact numbers from the metrics below. Do not invent data.
+- Do not mention training philosophy, doctrine, minimum effective dose, or motivational filler.
+- If the verdict is "insufficient data", say so plainly and say what data is missing.
+- Keep your answer to 2-4 sentences. Be direct.`;
+
+  const userPrompt = `Current config: ${getConfig(config)}\n\nProgress verdict (stats-only):\n${JSON.stringify(verdict, null, 2)}\n\nGive a short, data-only analysis.`;
+
+  try {
+    return await callGemini({ systemPrompt, userPrompt });
+  } catch (error) {
+    console.error("analyzeStats failed:", error);
+    return `${verdict.headline} Based on ${verdict.observations.length} tracked metrics, the current assessment is: ${verdict.status}.`;
+  }
+}
+
+export async function coachStats() {
+  if (!(await verifySession())) {
+    throw new Error("Unauthorized");
+  }
+
+  const { verdict, config } = await computeVerdict();
+  const entries = await loadJudgeEntries();
+  const signals = analyze(entries, config, new Date());
+  const philosophy = await readPhilosophy();
+
+  const systemPrompt = buildSystemPrompt(config, philosophy);
+
+  const userPrompt = `Current config: ${getConfig(config)}\n\nProgress verdict (stats-based):\n${JSON.stringify(
+    verdict,
+    null,
+    2
+  )}\n\nStage A signals:\n${JSON.stringify(signals, null, 2)}\n\nWrite a short Coach's Note that interprets these numbers in light of the training philosophy. Be direct and honest. Suggest one concrete tweak only if the data clearly supports it. 2-4 sentences.`;
+
+  try {
+    return await callGemini({ systemPrompt, userPrompt });
+  } catch (error) {
+    console.error("coachStats failed:", error);
+    if (signals.length > 0) {
+      return signals.map((s) => s.message).join(" ");
+    }
+    return "Keep training consistently and check back after your next session.";
   }
 }
 

@@ -17,10 +17,7 @@ const config: CoachConfig = {
 function makeEntry(
   overrides: Partial<JudgeEntry> & { date: Date; workoutId: string; exerciseId: string }
 ): JudgeEntry {
-  return {
-    date: overrides.date,
-    workoutId: overrides.workoutId,
-    exerciseId: overrides.exerciseId,
+  const base = {
     exerciseName: overrides.exerciseName || "Exercise",
     muscleGroups: overrides.muscleGroups || ["quadriceps"],
     reps: overrides.reps ?? 8,
@@ -29,8 +26,8 @@ function makeEntry(
     rir: overrides.rir,
     rpe: overrides.rpe,
     createdAt: overrides.createdAt ?? overrides.date,
-    ...overrides,
   };
+  return { ...base, ...overrides } as JudgeEntry;
 }
 
 function daysAgo(days: number, from = new Date()): Date {
