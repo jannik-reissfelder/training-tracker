@@ -170,13 +170,16 @@ function analyzeVolumeDrop(entries: SetEntry[], config: CoachConfig, today: Date
     }
   }
 
-  const baselineEndWeek = formatWeekKey(weeksAgo(1, today));
+  const lastEntryDate = entries.reduce((max, e) => (e.date > max ? e.date : max), new Date(0));
+  const reportDate = lastEntryDate > today ? today : lastEntryDate;
+  const baselineEndWeek = formatWeekKey(reportDate);
 
   for (const [group, groupMap] of weekSetsByGroup) {
     const weeks = Array.from(groupMap.keys()).sort();
     const baselineWeeks = weeks.filter(
-      (w) => w <= baselineEndWeek && w > formatWeekKey(weeksAgo(config.volumeBaselineWeeks, today))
+      (w) => w <= baselineEndWeek && w > formatWeekKey(weeksAgo(config.volumeBaselineWeeks + 1, reportDate))
     );
+    baselineWeeks.pop(); // exclude the most recent week from the baseline
     if (baselineWeeks.length === 0) continue;
 
     const baselineTotal = baselineWeeks.reduce((sum, w) => sum + (groupMap.get(w) || 0), 0);
@@ -206,8 +209,8 @@ function analyzeConsistencyDrop(entries: SetEntry[], config: CoachConfig, today:
 
   if (entries.length === 0) return signals;
   const firstDate = entries.reduce((min, e) => (e.date < min ? e.date : min), today);
-  const daysSinceFirst = (today.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24);
-  if (daysSinceFirst < 7) return signals;
+  const daysSinceFirst = Math.max(1, (today.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24));
+  if (daysSinceFirst < 2) return signals;
 
   const windowStart = weeksAgo(config.consistencyWindowWeeks, today);
   const sessions = new Set<string>();
@@ -219,7 +222,9 @@ function analyzeConsistencyDrop(entries: SetEntry[], config: CoachConfig, today:
   }
 
   const count = sessions.size;
-  const target = config.frequencyMin * config.consistencyWindowWeeks;
+  const elapsedWeeks = daysSinceFirst / 7;
+  const effectiveWeeks = Math.min(config.consistencyWindowWeeks, elapsedWeeks);
+  const target = Math.max(1, Math.ceil(config.frequencyMin * effectiveWeeks));
 
   if (count < target) {
     signals.push({

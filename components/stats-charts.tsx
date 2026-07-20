@@ -13,7 +13,7 @@ import {
   Bar,
 } from "recharts";
 import { epley1RM } from "@/lib/est1rm";
-import { formatWeekKey, weeksAgo } from "@/lib/dates";
+import { formatWeekKey, weeksAgo, startOfWeekUTC } from "@/lib/dates";
 
 export interface StatsWorkout {
   id: string;
@@ -94,9 +94,12 @@ export default function StatsCharts({
 
   const muscleGroupSeries = useMemo(() => {
     const weeks = new Map<string, number>();
-    const today = new Date();
+    const latestWorkoutDate = workouts.length
+      ? new Date(Math.max(...workouts.map((w) => new Date(w.date).getTime())))
+      : new Date();
+    const endWeek = startOfWeekUTC(latestWorkoutDate);
     for (let i = 11; i >= 0; i--) {
-      const week = formatWeekKey(weeksAgo(i, today));
+      const week = formatWeekKey(weeksAgo(i, endWeek));
       weeks.set(week, 0);
     }
 
@@ -118,9 +121,12 @@ export default function StatsCharts({
 
   const consistencySeries = useMemo(() => {
     const weeks = new Map<string, number>();
-    const today = new Date();
+    const latestWorkoutDate = workouts.length
+      ? new Date(Math.max(...workouts.map((w) => new Date(w.date).getTime())))
+      : new Date();
+    const endWeek = startOfWeekUTC(latestWorkoutDate);
     for (let i = 11; i >= 0; i--) {
-      const week = formatWeekKey(weeksAgo(i, today));
+      const week = formatWeekKey(weeksAgo(i, endWeek));
       weeks.set(week, 0);
     }
 

@@ -1,5 +1,5 @@
 import { epley1RM } from "@/lib/est1rm";
-import { formatWeekKey, weeksAgo } from "@/lib/dates";
+import { differenceInDaysUTC, formatWeekKey, weeksAgo } from "@/lib/dates";
 import type { CoachConfig, SetEntry } from "@/lib/coach/rules";
 
 export type JudgeEntry = SetEntry & { createdAt: Date };
@@ -236,7 +236,9 @@ function rpeDriftObservations(seriesMap: Map<string, ExerciseSessionSeries>, tod
   return obs;
 }
 
-function muscleVolumeObservations(entries: JudgeEntry[], config: CoachConfig, today: Date): Observation[] {
+function muscleVolumeObservations(entries: JudgeEntry[], config: CoachConfig, today: Date, coldStart: boolean): Observation[] {
+  if (coldStart) return [];
+
   const obs: Observation[] = [];
   const weekSetsByGroup = new Map<string, Map<string, number>>();
 
@@ -249,19 +251,30 @@ function muscleVolumeObservations(entries: JudgeEntry[], config: CoachConfig, to
     }
   }
 
-  const lastWeekKey = formatWeekKey(today);
-  const baselineStart = formatWeekKey(weeksAgo(config.volumeBaselineWeeks + 1, today));
+  const lastEntryDate = entries.reduce((max, e) => (e.date > max ? e.date : max), new Date(0));
+  const reportDate = lastEntryDate > today ? today : lastEntryDate;
+  const lastWeekKey = formatWeekKey(reportDate);
+  const baselineStart = formatWeekKey(weeksAgo(config.volumeBaselineWeeks + 1, reportDate));
 
   for (const [group, groupMap] of weekSetsByGroup) {
     const weeks = Array.from(groupMap.keys()).sort();
     const baselineWeeks = weeks.filter((w) => w <= lastWeekKey && w > baselineStart);
-    baselineWeeks.pop(); // remove current week
+    baselineWeeks.pop(); // remove current/most-recent week
     const lastCompleted = groupMap.get(lastWeekKey) || 0;
     const baselineTotal = baselineWeeks.reduce((sum, w) => sum + (groupMap.get(w) || 0), 0);
+    const baselineWeeksWithData = baselineWeeks.filter((w) => (groupMap.get(w) || 0) > 0).length;
     const baselineAvg = baselineWeeks.length > 0 ? baselineTotal / baselineWeeks.length : 0;
     const label = `${group} weekly sets`;
 
-    if (baselineAvg > 0 && lastCompleted < baselineAvg - config.volumeDropThreshold) {
+    if (baselineWeeksWithData === 0 && lastCompleted > 0) {
+      obs.push({
+        type: "positive",
+        scope: "muscle",
+        label,
+        message: `${group} logged ${lastCompleted} hard sets in the first tracked week.`,
+        details: { lastCompleted, baselineAverage: 0 },
+      });
+    } else if (baselineAvg > 0 && lastCompleted < baselineAvg - config.volumeDropThreshold) {
       obs.push({
         type: "negative",
         scope: "muscle",
@@ -301,9 +314,15 @@ function muscleVolumeObservations(entries: JudgeEntry[], config: CoachConfig, to
 function adherenceObservations(sessions: SessionSummary[], config: CoachConfig, today: Date): Observation[] {
   const obs: Observation[] = [];
   if (sessions.length === 0) return obs;
-  const windowStart = weeksAgo(4, today);
+  const firstDate = sessions[0].date;
+  const daysSinceFirst = Math.max(1, differenceInDaysUTC(today, firstDate));
+  const windowWeeks = config.consistencyWindowWeeks;
+  const elapsedWeeks = daysSinceFirst / 7;
+  const effectiveWeeks = Math.min(windowWeeks, elapsedWeeks);
+  const target = Math.max(1, Math.ceil(config.frequencyMin * effectiveWeeks));
+
+  const windowStart = weeksAgo(windowWeeks, today);
   const recent = sessions.filter((s) => s.date >= windowStart && s.date <= today);
-  const target = config.frequencyMin * 4;
   const actual = recent.length;
   const pct = target > 0 ? actual / target : 0;
   const label = "Session adherence";
@@ -313,7 +332,7 @@ function adherenceObservations(sessions: SessionSummary[], config: CoachConfig, 
       type: "positive",
       scope: "global",
       label,
-      message: `${actual} sessions in the last 4 weeks (${(pct * 100).toFixed(0)}% of ${target} target).`,
+      message: `${actual} sessions in the last ${windowWeeks} weeks (${(pct * 100).toFixed(0)}% of ${target} target).`,
       details: { actual, target, pct: Number(pct.toFixed(2)) },
     });
   } else if (pct >= 0.7) {
@@ -321,7 +340,7 @@ function adherenceObservations(sessions: SessionSummary[], config: CoachConfig, 
       type: "warning",
       scope: "global",
       label,
-      message: `${actual} sessions in the last 4 weeks (${(pct * 100).toFixed(0)}% of ${target} target) — below the 85% threshold, making progress hard to interpret.`,
+      message: `${actual} sessions in the last ${windowWeeks} weeks (${(pct * 100).toFixed(0)}% of ${target} target) — below the 85% threshold, making progress hard to interpret.`,
       details: { actual, target, pct: Number(pct.toFixed(2)) },
     });
   } else {
@@ -329,7 +348,7 @@ function adherenceObservations(sessions: SessionSummary[], config: CoachConfig, 
       type: "negative",
       scope: "global",
       label,
-      message: `${actual} sessions in the last 4 weeks (${(pct * 100).toFixed(0)}% of ${target} target) — frequency is too low for progress.`,
+      message: `${actual} sessions in the last ${windowWeeks} weeks (${(pct * 100).toFixed(0)}% of ${target} target) — frequency is too low for progress.`,
       details: { actual, target, pct: Number(pct.toFixed(2)) },
     });
   }
@@ -501,19 +520,20 @@ function isColdStart(sessions: SessionSummary[], today: Date): boolean {
 export function judgeProgress(entries: JudgeEntry[], config: CoachConfig, today = new Date()): ProgressVerdict {
   const sessions = summarizeSessions(entries);
   const seriesMap = sessionsByExercise(sessions);
+  const coldStart = isColdStart(sessions, today);
 
   const observations: Observation[] = [];
   observations.push(...adherenceObservations(sessions, config, today));
   observations.push(...e1RMObservations(seriesMap, today));
   observations.push(...rpeDriftObservations(seriesMap, today));
-  observations.push(...muscleVolumeObservations(entries, config, today));
+  observations.push(...muscleVolumeObservations(entries, config, today, coldStart));
   observations.push(...volumeLoadObservations(seriesMap, today));
   observations.push(...setDropoffObservations(entries, today));
 
   let status = determineStatus(observations);
   let headline = buildHeadline(status, observations);
 
-  if (isColdStart(sessions, today)) {
+  if (coldStart) {
     status = "insufficient-data";
     headline = "Baseline set — log a few more sessions over the next 1-2 weeks to get your first progress verdict.";
   }
