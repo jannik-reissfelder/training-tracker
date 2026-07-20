@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { createSet, updateSet, deleteSet, updateWorkout, finishWorkout, deleteWorkout, addExerciseSets } from "@/app/actions";
+import { createSet, updateSet, deleteSet, updateWorkout, finishWorkout, deleteWorkout, addExerciseSets, deleteExerciseFromWorkout } from "@/app/actions";
 
 interface ExerciseOption {
   id: string;
@@ -226,6 +226,17 @@ export default function WorkoutForm({
                   />
                   <button type="submit" className="btn primary">
                     Add set
+                  </button>
+                </form>
+                <form
+                  action={deleteExerciseFromWorkout}
+                  className="row"
+                  style={{ gap: "0.5rem", alignItems: "center" }}
+                >
+                  <input type="hidden" name="workoutId" value={workout.id} />
+                  <input type="hidden" name="exerciseId" value={group.exerciseId} />
+                  <button type="submit" className="btn danger">
+                    Remove exercise
                   </button>
                 </form>
               </div>

@@ -253,11 +253,24 @@ export async function deleteWorkout(formData: FormData) {
   redirect("/workouts");
 }
 
-export async function createWorkoutFromTemplate() {
-  const template = await prisma.workout.findFirst({
-    orderBy: { date: "desc" },
-    include: { SetEntries: { orderBy: { createdAt: "asc" } } },
-  });
+export async function deleteExerciseFromWorkout(formData: FormData) {
+  const workoutId = formData.get("workoutId") as string;
+  const exerciseId = formData.get("exerciseId") as string;
+  await prisma.setEntry.deleteMany({ where: { workoutId, exerciseId } });
+  revalidatePath(`/workouts/${workoutId}`);
+}
+
+export async function createWorkoutFromTemplate(formData: FormData) {
+  const templateId = formData.get("templateId") as string;
+  const template = templateId
+    ? await prisma.workout.findUnique({
+        where: { id: templateId },
+        include: { SetEntries: { orderBy: { createdAt: "asc" } } },
+      })
+    : await prisma.workout.findFirst({
+        orderBy: { date: "desc" },
+        include: { SetEntries: { orderBy: { createdAt: "asc" } } },
+      });
 
   if (!template) {
     redirect("/workouts/new");
