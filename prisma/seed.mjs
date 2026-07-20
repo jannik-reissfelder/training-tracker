@@ -19,18 +19,18 @@ const exercises = [
   { name: "Suitcase Carry", muscleGroups: ["obliques", "forearms", "traps"], movementPattern: "carry" },
   { name: "Plank", muscleGroups: ["core"], movementPattern: "core" },
   { name: "Dead Bug", muscleGroups: ["core", "hip flexors"], movementPattern: "core" },
+  { name: "Leg Curl", muscleGroups: ["hamstrings"], movementPattern: "isolation" },
 ];
 
 async function main() {
-  const existingExercises = await prisma.exercise.count();
-  if (existingExercises === 0) {
-    for (const exercise of exercises) {
-      await prisma.exercise.create({ data: { ...exercise, isSystem: true } });
-    }
-    console.log("Seeded exercises.");
-  } else {
-    console.log("Exercises already present; skipping exercise seed.");
+  for (const exercise of exercises) {
+    await prisma.exercise.upsert({
+      where: { name: exercise.name },
+      update: {},
+      create: { ...exercise, isSystem: true },
+    });
   }
+  console.log("Seeded exercises.");
 
   const existingConfig = await prisma.config.findUnique({ where: { id: "default" } });
   if (!existingConfig) {

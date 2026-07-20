@@ -231,10 +231,65 @@ export async function updateWorkout(formData: FormData) {
   redirect(`/workouts/${id}`);
 }
 
+export async function finishWorkout(formData: FormData) {
+  const id = formData.get("id") as string;
+  const date = formData.get("date") as string;
+  const notes = formData.get("notes") as string;
+
+  await prisma.workout.update({
+    where: { id },
+    data: {
+      date: new Date(date),
+      notes: notes || null,
+    },
+  });
+
+  redirect("/workouts");
+}
+
 export async function deleteWorkout(formData: FormData) {
   const id = formData.get("id") as string;
   await prisma.workout.delete({ where: { id } });
   redirect("/workouts");
+}
+
+export async function createWorkoutFromTemplate() {
+  const template = await prisma.workout.findFirst({
+    orderBy: { date: "desc" },
+    include: { SetEntries: { orderBy: { createdAt: "asc" } } },
+  });
+
+  if (!template) {
+    redirect("/workouts/new");
+  }
+
+  const date = new Date();
+  const newWorkout = await prisma.workout.create({
+    data: {
+      date,
+      notes: template.notes ? `${template.notes} (copied from ${template.date.toLocaleDateString()})` : `Copied from ${template.date.toLocaleDateString()}`,
+    },
+  });
+
+  const baseCreatedAt = new Date();
+  for (let i = 0; i < template.SetEntries.length; i++) {
+    const entry = template.SetEntries[i];
+    await prisma.setEntry.create({
+      data: {
+        workoutId: newWorkout.id,
+        exerciseId: entry.exerciseId,
+        reps: entry.reps,
+        weight: entry.weight,
+        unit: entry.unit,
+        rir: entry.rir,
+        rpe: entry.rpe,
+        notes: entry.notes,
+        createdAt: new Date(baseCreatedAt.getTime() + i * 1000),
+      },
+    });
+  }
+
+  redirect(`/workouts/${newWorkout.id}`);
 }
 
 export async function createSet(formData: FormData) {

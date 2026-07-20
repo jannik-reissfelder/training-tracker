@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { createSet, updateSet, deleteSet, updateWorkout, deleteWorkout, addExerciseSets } from "@/app/actions";
+import { createSet, updateSet, deleteSet, updateWorkout, finishWorkout, deleteWorkout, addExerciseSets } from "@/app/actions";
 
 interface ExerciseOption {
   id: string;
@@ -81,6 +81,19 @@ export default function WorkoutForm({
   const [selectedExerciseId, setSelectedExerciseId] = useState("");
   const [newSets, setNewSets] = useState<NewSet[]>([{ ...emptySet }]);
   const [error, setError] = useState<string | null>(null);
+  const [dirtySetIds, setDirtySetIds] = useState<Set<string>>(new Set());
+
+  function markDirty(setId: string) {
+    setDirtySetIds((prev) => new Set(prev).add(setId));
+  }
+
+  function clearDirty(setId: string) {
+    setDirtySetIds((prev) => {
+      const next = new Set(prev);
+      next.delete(setId);
+      return next;
+    });
+  }
 
   const grouped = groupByExercise(workout.setEntries);
 
@@ -138,7 +151,10 @@ export default function WorkoutForm({
 
         <div className="row">
           <button type="submit" className="btn primary">
-            Update workout
+            Save workout
+          </button>
+          <button type="submit" formAction={finishWorkout} className="btn">
+            Save & finish
           </button>
           <button type="submit" formAction={deleteWorkout} className="btn danger">
             Delete
@@ -219,6 +235,7 @@ export default function WorkoutForm({
                   <li key={set.id}>
                     <form
                       action={updateSet}
+                      onSubmit={() => clearDirty(set.id)}
                       className="row"
                       style={{ gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}
                     >
@@ -229,6 +246,7 @@ export default function WorkoutForm({
                         type="number"
                         min={0}
                         defaultValue={set.reps}
+                        onChange={() => markDirty(set.id)}
                         required
                         style={{ width: "4rem" }}
                       />
@@ -239,10 +257,17 @@ export default function WorkoutForm({
                         step="0.01"
                         min={0}
                         defaultValue={set.weight}
+                        onChange={() => markDirty(set.id)}
                         required
                         style={{ width: "4rem" }}
                       />
-                      <select name="unit" defaultValue={set.unit} required style={{ width: "3.5rem" }}>
+                      <select
+                        name="unit"
+                        defaultValue={set.unit}
+                        onChange={() => markDirty(set.id)}
+                        required
+                        style={{ width: "3.5rem" }}
+                      >
                         <option value="kg">kg</option>
                         <option value="lb">lb</option>
                       </select>
@@ -252,6 +277,7 @@ export default function WorkoutForm({
                         min={0}
                         max={10}
                         defaultValue={set.rir ?? ""}
+                        onChange={() => markDirty(set.id)}
                         placeholder="RIR"
                         style={{ width: "3.5rem" }}
                       />
@@ -262,16 +288,21 @@ export default function WorkoutForm({
                         max={10}
                         step="0.5"
                         defaultValue={set.rpe ?? ""}
+                        onChange={() => markDirty(set.id)}
                         placeholder="RPE"
                         style={{ width: "3.5rem" }}
                       />
                       <input
                         name="notes"
                         defaultValue={set.notes || ""}
+                        onChange={() => markDirty(set.id)}
                         placeholder="notes"
                         style={{ minWidth: "6rem", flex: 1 }}
                       />
-                      <button type="submit" className="btn">
+                      <button
+                        type="submit"
+                        className={dirtySetIds.has(set.id) ? "btn primary blink" : "btn"}
+                      >
                         Save
                       </button>
                       <button type="submit" formAction={deleteSet} className="btn danger">
