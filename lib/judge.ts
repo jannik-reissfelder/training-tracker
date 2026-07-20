@@ -120,7 +120,8 @@ function pctChange(current: number, baseline: number): number {
   return (current - baseline) / baseline;
 }
 
-function e1RMObservations(seriesMap: Map<string, ExerciseSessionSeries>, today: Date): Observation[] {
+function e1RMObservations(seriesMap: Map<string, ExerciseSessionSeries>, today: Date, coldStart: boolean): Observation[] {
+  if (coldStart) return [];
   const obs: Observation[] = [];
   for (const [, series] of seriesMap) {
     const sessions = series.sessions;
@@ -355,7 +356,8 @@ function adherenceObservations(sessions: SessionSummary[], config: CoachConfig, 
   return obs;
 }
 
-function volumeLoadObservations(seriesMap: Map<string, ExerciseSessionSeries>, today: Date): Observation[] {
+function volumeLoadObservations(seriesMap: Map<string, ExerciseSessionSeries>, today: Date, coldStart: boolean): Observation[] {
+  if (coldStart) return [];
   const obs: Observation[] = [];
   const windowStart = weeksAgo(4, today);
 
@@ -514,7 +516,7 @@ function buildHeadline(status: ProgressStatus, observations: Observation[]): str
 function isColdStart(sessions: SessionSummary[], today: Date): boolean {
   if (sessions.length === 0) return false;
   const daysSinceFirst = (today.getTime() - sessions[0].date.getTime()) / (1000 * 60 * 60 * 24);
-  return sessions.length < 2 || (sessions.length < 3 && daysSinceFirst < 7);
+  return sessions.length < 4 || daysSinceFirst < 14;
 }
 
 export function judgeProgress(entries: JudgeEntry[], config: CoachConfig, today = new Date()): ProgressVerdict {
@@ -524,10 +526,10 @@ export function judgeProgress(entries: JudgeEntry[], config: CoachConfig, today 
 
   const observations: Observation[] = [];
   observations.push(...adherenceObservations(sessions, config, today));
-  observations.push(...e1RMObservations(seriesMap, today));
+  observations.push(...e1RMObservations(seriesMap, today, coldStart));
   observations.push(...rpeDriftObservations(seriesMap, today));
   observations.push(...muscleVolumeObservations(entries, config, today, coldStart));
-  observations.push(...volumeLoadObservations(seriesMap, today));
+  observations.push(...volumeLoadObservations(seriesMap, today, coldStart));
   observations.push(...setDropoffObservations(entries, today));
 
   let status = determineStatus(observations);
@@ -535,7 +537,7 @@ export function judgeProgress(entries: JudgeEntry[], config: CoachConfig, today 
 
   if (coldStart) {
     status = "insufficient-data";
-    headline = "Baseline set — log a few more sessions over the next 1-2 weeks to get your first progress verdict.";
+    headline = "Baseline set — log at least 3-4 sessions (about 2 weeks) for a reliable progress verdict.";
   }
 
   return { status, headline, observations };
