@@ -82,6 +82,8 @@ export default function WorkoutForm({
   const [newSets, setNewSets] = useState<NewSet[]>([{ ...emptySet }]);
   const [error, setError] = useState<string | null>(null);
   const [dirtySetIds, setDirtySetIds] = useState<Set<string>>(new Set());
+  const [date, setDate] = useState(workout.date);
+  const [notes, setNotes] = useState(workout.notes || "");
 
   function markDirty(setId: string) {
     setDirtySetIds((prev) => new Set(prev).add(setId));
@@ -141,13 +143,13 @@ export default function WorkoutForm({
 
   return (
     <div className="stack">
-      <form action={updateWorkout} className="card stack">
+      <form action={updateWorkout} className="card stack" style={{ position: "sticky", top: 0, zIndex: 10, background: "var(--bg, #fff)" }}>
         <input name="id" type="hidden" value={workout.id} />
         <label htmlFor="date">Date</label>
-        <input id="date" name="date" type="date" defaultValue={workout.date} required />
+        <input id="date" name="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
 
         <label htmlFor="notes">Notes</label>
-        <textarea id="notes" name="notes" rows={2} defaultValue={workout.notes || ""} />
+        <textarea id="notes" name="notes" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
 
         <div className="row">
           <button type="submit" className="btn primary">
@@ -242,7 +244,7 @@ export default function WorkoutForm({
               </div>
 
               <ul className="stack" style={{ gap: "0.5rem", listStyle: "none", padding: 0, margin: 0 }}>
-                {group.sets.map((set) => (
+                {group.sets.map((set, setIndex) => (
                   <li key={set.id}>
                     <form
                       action={updateSet}
@@ -250,6 +252,7 @@ export default function WorkoutForm({
                       className="row"
                       style={{ gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}
                     >
+                      <span style={{ minWidth: "3rem", fontWeight: 600 }}>Set {setIndex + 1}</span>
                       <input type="hidden" name="id" value={set.id} />
                       <input type="hidden" name="workoutId" value={workout.id} />
                       <input
@@ -352,6 +355,7 @@ export default function WorkoutForm({
           <div className="stack" style={{ gap: "0.75rem" }}>
             {newSets.map((s, i) => (
               <div key={i} className="row" style={{ gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
+                <span style={{ minWidth: "3rem", fontWeight: 600 }}>Set {i + 1}</span>
                 <input
                   type="number"
                   min={0}
@@ -431,6 +435,23 @@ export default function WorkoutForm({
           </div>
         )}
       </section>
+
+      <form action={finishWorkout} className="card stack" style={{ position: "sticky", bottom: 0, zIndex: 10, background: "var(--bg, #fff)" }}>
+        <input type="hidden" name="id" value={workout.id} />
+        <input type="hidden" name="date" value={date} />
+        <input type="hidden" name="notes" value={notes} />
+        <div className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
+          <span className="muted">Finished logging?</span>
+          <div className="row">
+            <button type="submit" formAction={updateWorkout} className="btn primary">
+              Save workout
+            </button>
+            <button type="submit" className="btn">
+              Save & finish
+            </button>
+          </div>
+        </div>
+      </form>
     </div>
   );
 }
