@@ -150,3 +150,80 @@ h3 {
 .blink {
   animation: blink 1s infinite;
 }
+
+.set-editor {
+  gap: 0.5rem;
+}
+
+.set-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  width: 4.5rem;
+}
+
+.set-field input,
+.set-field select {
+  width: 100%;
+}
+
+.set-field-notes {
+  flex: 1;
+  min-width: 8rem;
+}
+
+.set-field-label {
+  color: var(--muted);
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+@media (max-width: 40rem) {
+  .container {
+    padding: 0.75rem;
+  }
+
+  .card {
+    padding: 0.875rem;
+  }
+
+  .exercise-card-header,
+  .set-editor,
+  .workout-actions,
+  .workout-finish-row {
+    align-items: stretch !important;
+    flex-direction: column;
+  }
+
+  .set-editor,
+  .exercise-remove-form,
+  .workout-actions {
+    width: 100%;
+  }
+
+  .set-editor {
+    gap: 0.75rem !important;
+  }
+
+  .set-field,
+  .set-field-notes {
+    flex: none;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .set-number {
+    min-width: 0 !important;
+    width: 100%;
+  }
+
+  .set-multiply {
+    display: none;
+  }
+
+  .set-editor > .btn,
+  .exercise-remove-form .btn,
+  .workout-actions .btn {
+    width: 100%;
+  }
+}

@@ -143,7 +143,7 @@ export default function WorkoutForm({
 
   return (
     <div className="stack">
-      <form action={updateWorkout} className="card stack" style={{ position: "sticky", top: 0, zIndex: 10, background: "var(--bg, #fff)" }}>
+      <form action={updateWorkout} className="card stack workout-details">
         <input name="id" type="hidden" value={workout.id} />
         <label htmlFor="date">Date</label>
         <input id="date" name="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
@@ -151,7 +151,7 @@ export default function WorkoutForm({
         <label htmlFor="notes">Notes</label>
         <textarea id="notes" name="notes" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
 
-        <div className="row">
+        <div className="row workout-actions">
           <button type="submit" className="btn primary">
             Save workout
           </button>
@@ -172,67 +172,77 @@ export default function WorkoutForm({
         <div className="stack">
           {grouped.map((group) => (
             <section key={group.exerciseId} className="card stack">
-              <div className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
+              <div className="row exercise-card-header" style={{ justifyContent: "space-between", alignItems: "center" }}>
                 <h3 style={{ margin: 0 }}>{group.exerciseName}</h3>
                 <form
                   action={createSet}
                   key={group.sets.length}
-                  className="row"
+                  className="row set-editor"
                   style={{ gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}
                 >
                   <input type="hidden" name="workoutId" value={workout.id} />
                   <input type="hidden" name="exerciseId" value={group.exerciseId} />
-                  <input
-                    name="reps"
-                    type="number"
-                    min={0}
-                    required
-                    placeholder="reps"
-                    style={{ width: "4rem" }}
-                  />
-                  <span>×</span>
-                  <input
-                    name="weight"
-                    type="number"
-                    step="0.01"
-                    min={0}
-                    required
-                    placeholder="kg"
-                    style={{ width: "4rem" }}
-                  />
-                  <select name="unit" defaultValue="kg" required style={{ width: "3.5rem" }}>
-                    <option value="kg">kg</option>
-                    <option value="lb">lb</option>
-                  </select>
-                  <input
-                    name="rir"
-                    type="number"
-                    min={0}
-                    max={10}
-                    placeholder="RIR"
-                    style={{ width: "3.5rem" }}
-                  />
-                  <input
-                    name="rpe"
-                    type="number"
-                    min={0}
-                    max={10}
-                    step="0.5"
-                    placeholder="RPE"
-                    style={{ width: "3.5rem" }}
-                  />
-                  <input
-                    name="notes"
-                    placeholder="notes"
-                    style={{ minWidth: "6rem", flex: 1 }}
-                  />
+                  <label className="set-field">
+                    <span className="set-field-label">Reps</span>
+                    <input
+                      name="reps"
+                      type="number"
+                      min={0}
+                      required
+                      placeholder="Reps"
+                    />
+                  </label>
+                  <span className="set-multiply">×</span>
+                  <label className="set-field">
+                    <span className="set-field-label">Weight</span>
+                    <input
+                      name="weight"
+                      type="number"
+                      step="0.01"
+                      min={0}
+                      required
+                      placeholder="Weight"
+                    />
+                  </label>
+                  <label className="set-field">
+                    <span className="set-field-label">Unit</span>
+                    <select name="unit" defaultValue="kg" required>
+                      <option value="kg">kg</option>
+                      <option value="lb">lb</option>
+                    </select>
+                  </label>
+                  <label className="set-field">
+                    <span className="set-field-label">RIR</span>
+                    <input
+                      name="rir"
+                      type="number"
+                      min={0}
+                      max={10}
+                      placeholder="RIR"
+                    />
+                  </label>
+                  <label className="set-field">
+                    <span className="set-field-label">RPE</span>
+                    <input
+                      name="rpe"
+                      type="number"
+                      min={0}
+                      max={10}
+                      step="0.5"
+                      placeholder="RPE"
+                    />
+                  </label>
+                  <label className="set-field set-field-notes">
+                    <span className="set-field-label">Notes</span>
+                    <input name="notes" placeholder="Notes" />
+                  </label>
                   <button type="submit" className="btn primary">
                     Add set
                   </button>
                 </form>
                 <form
                   action={deleteExerciseFromWorkout}
-                  className="row"
+                  className="row exercise-remove-form"
                   style={{ gap: "0.5rem", alignItems: "center" }}
                 >
                   <input type="hidden" name="workoutId" value={workout.id} />
@@ -249,70 +259,82 @@ export default function WorkoutForm({
                     <form
                       action={updateSet}
                       onSubmit={() => clearDirty(set.id)}
-                      className="row"
+                      className="row set-editor"
                       style={{ gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}
                     >
-                      <span style={{ minWidth: "3rem", fontWeight: 600 }}>Set {setIndex + 1}</span>
+                      <span className="set-number" style={{ minWidth: "3rem", fontWeight: 600 }}>Set {setIndex + 1}</span>
                       <input type="hidden" name="id" value={set.id} />
                       <input type="hidden" name="workoutId" value={workout.id} />
-                      <input
-                        name="reps"
-                        type="number"
-                        min={0}
-                        defaultValue={set.reps}
-                        onChange={() => markDirty(set.id)}
-                        required
-                        style={{ width: "4rem" }}
-                      />
-                      <span>×</span>
-                      <input
-                        name="weight"
-                        type="number"
-                        step="0.01"
-                        min={0}
-                        defaultValue={set.weight}
-                        onChange={() => markDirty(set.id)}
-                        required
-                        style={{ width: "4rem" }}
-                      />
-                      <select
-                        name="unit"
-                        defaultValue={set.unit}
-                        onChange={() => markDirty(set.id)}
-                        required
-                        style={{ width: "3.5rem" }}
-                      >
-                        <option value="kg">kg</option>
-                        <option value="lb">lb</option>
-                      </select>
-                      <input
-                        name="rir"
-                        type="number"
-                        min={0}
-                        max={10}
-                        defaultValue={set.rir ?? ""}
-                        onChange={() => markDirty(set.id)}
-                        placeholder="RIR"
-                        style={{ width: "3.5rem" }}
-                      />
-                      <input
-                        name="rpe"
-                        type="number"
-                        min={0}
-                        max={10}
-                        step="0.5"
-                        defaultValue={set.rpe ?? ""}
-                        onChange={() => markDirty(set.id)}
-                        placeholder="RPE"
-                        style={{ width: "3.5rem" }}
-                      />
-                      <input
-                        name="notes"
-                        defaultValue={set.notes || ""}
-                        onChange={() => markDirty(set.id)}
-                        placeholder="notes"
-                        style={{ minWidth: "6rem", flex: 1 }}
-                      />
+                      <label className="set-field">
+                        <span className="set-field-label">Reps</span>
+                        <input
+                          name="reps"
+                          type="number"
+                          min={0}
+                          defaultValue={set.reps}
+                          onChange={() => markDirty(set.id)}
+                          required
+                        />
+                      </label>
+                      <span className="set-multiply">×</span>
+                      <label className="set-field">
+                        <span className="set-field-label">Weight</span>
+                        <input
+                          name="weight"
+                          type="number"
+                          step="0.01"
+                          min={0}
+                          defaultValue={set.weight}
+                          onChange={() => markDirty(set.id)}
+                          required
+                        />
+                      </label>
+                      <label className="set-field">
+                        <span className="set-field-label">Unit</span>
+                        <select
+                          name="unit"
+                          defaultValue={set.unit}
+                          onChange={() => markDirty(set.id)}
+                          required
+                        >
+                          <option value="kg">kg</option>
+                          <option value="lb">lb</option>
+                        </select>
+                      </label>
+                      <label className="set-field">
+                        <span className="set-field-label">RIR</span>
+                        <input
+                          name="rir"
+                          type="number"
+                          min={0}
+                          max={10}
+                          defaultValue={set.rir ?? ""}
+                          onChange={() => markDirty(set.id)}
+                          placeholder="RIR"
+                        />
+                      </label>
+                      <label className="set-field">
+                        <span className="set-field-label">RPE</span>
+                        <input
+                          name="rpe"
+                          type="number"
+                          min={0}
+                          max={10}
+                          step="0.5"
+                          defaultValue={set.rpe ?? ""}
+                          onChange={() => markDirty(set.id)}
+                          placeholder="RPE"
+                        />
+                      </label>
+                      <label className="set-field set-field-notes">
+                        <span className="set-field-label">Notes</span>
+                        <input
+                          name="notes"
+                          defaultValue={set.notes || ""}
+                          onChange={() => markDirty(set.id)}
+                          placeholder="Notes"
+                        />
+                      </label>
                       <button
                         type="submit"
                         className={dirtySetIds.has(set.id) ? "btn primary blink" : "btn"}
@@ -354,61 +376,73 @@ export default function WorkoutForm({
         {selectedExerciseId && (
           <div className="stack" style={{ gap: "0.75rem" }}>
             {newSets.map((s, i) => (
-              <div key={i} className="row" style={{ gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
-                <span style={{ minWidth: "3rem", fontWeight: 600 }}>Set {i + 1}</span>
-                <input
-                  type="number"
-                  min={0}
-                  value={s.reps}
-                  onChange={(e) => handleRowChange(i, "reps", e.target.value)}
-                  placeholder="reps"
-                  required
-                  style={{ width: "4rem" }}
-                />
-                <span>×</span>
-                <input
-                  type="number"
-                  step="0.01"
-                  min={0}
-                  value={s.weight}
-                  onChange={(e) => handleRowChange(i, "weight", e.target.value)}
-                  placeholder="kg"
-                  required
-                  style={{ width: "4rem" }}
-                />
-                <select
-                  value={s.unit}
-                  onChange={(e) => handleRowChange(i, "unit", e.target.value)}
-                  style={{ width: "3.5rem" }}
-                >
-                  <option value="kg">kg</option>
-                  <option value="lb">lb</option>
-                </select>
-                <input
-                  type="number"
-                  min={0}
-                  max={10}
-                  value={s.rir}
-                  onChange={(e) => handleRowChange(i, "rir", e.target.value)}
-                  placeholder="RIR"
-                  style={{ width: "3.5rem" }}
-                />
-                <input
-                  type="number"
-                  min={0}
-                  max={10}
-                  step="0.5"
-                  value={s.rpe}
-                  onChange={(e) => handleRowChange(i, "rpe", e.target.value)}
-                  placeholder="RPE"
-                  style={{ width: "3.5rem" }}
-                />
-                <input
-                  value={s.notes}
-                  onChange={(e) => handleRowChange(i, "notes", e.target.value)}
-                  placeholder="notes"
-                  style={{ minWidth: "6rem", flex: 1 }}
-                />
+              <div key={i} className="row set-editor" style={{ gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
+                <span className="set-number" style={{ minWidth: "3rem", fontWeight: 600 }}>Set {i + 1}</span>
+                <label className="set-field">
+                  <span className="set-field-label">Reps</span>
+                  <input
+                    type="number"
+                    min={0}
+                    value={s.reps}
+                    onChange={(e) => handleRowChange(i, "reps", e.target.value)}
+                    placeholder="Reps"
+                    required
+                  />
+                </label>
+                <span className="set-multiply">×</span>
+                <label className="set-field">
+                  <span className="set-field-label">Weight</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min={0}
+                    value={s.weight}
+                    onChange={(e) => handleRowChange(i, "weight", e.target.value)}
+                    placeholder="Weight"
+                    required
+                  />
+                </label>
+                <label className="set-field">
+                  <span className="set-field-label">Unit</span>
+                  <select
+                    value={s.unit}
+                    onChange={(e) => handleRowChange(i, "unit", e.target.value)}
+                  >
+                    <option value="kg">kg</option>
+                    <option value="lb">lb</option>
+                  </select>
+                </label>
+                <label className="set-field">
+                  <span className="set-field-label">RIR</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={10}
+                    value={s.rir}
+                    onChange={(e) => handleRowChange(i, "rir", e.target.value)}
+                    placeholder="RIR"
+                  />
+                </label>
+                <label className="set-field">
+                  <span className="set-field-label">RPE</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={10}
+                    step="0.5"
+                    value={s.rpe}
+                    onChange={(e) => handleRowChange(i, "rpe", e.target.value)}
+                    placeholder="RPE"
+                  />
+                </label>
+                <label className="set-field set-field-notes">
+                  <span className="set-field-label">Notes</span>
+                  <input
+                    value={s.notes}
+                    onChange={(e) => handleRowChange(i, "notes", e.target.value)}
+                    placeholder="Notes"
+                  />
+                </label>
                 {newSets.length > 1 && (
                   <button type="button" className="btn danger" onClick={() => handleRemoveRow(i)}>
                     Remove
@@ -419,7 +453,7 @@ export default function WorkoutForm({
 
             {error && <p className="muted" style={{ color: "var(--danger, #ef4444)" }}>{error}</p>}
 
-            <div className="row">
+            <div className="row workout-actions">
               <button type="button" className="btn" onClick={handleAddRow}>
                 Add another set
               </button>
@@ -436,13 +470,13 @@ export default function WorkoutForm({
         )}
       </section>
 
-      <form action={finishWorkout} className="card stack" style={{ position: "sticky", bottom: 0, zIndex: 10, background: "var(--bg, #fff)" }}>
+      <form action={finishWorkout} className="card stack workout-finish">
         <input type="hidden" name="id" value={workout.id} />
         <input type="hidden" name="date" value={date} />
         <input type="hidden" name="notes" value={notes} />
-        <div className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
+        <div className="row workout-finish-row" style={{ justifyContent: "space-between", alignItems: "center" }}>
           <span className="muted">Finished logging?</span>
-          <div className="row">
+          <div className="row workout-actions">
             <button type="submit" formAction={updateWorkout} className="btn primary">
               Save workout
             </button>

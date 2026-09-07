@@ -262,25 +262,33 @@ export async function deleteExerciseFromWorkout(formData: FormData) {
 
 export async function createWorkoutFromTemplate(formData: FormData) {
   const templateId = formData.get("templateId") as string;
+  const templateName = formData.get("templateName");
+  if (templateName !== "A" && templateName !== "B") {
+    throw new Error("Invalid workout template.");
+  }
+
   const template = templateId
     ? await prisma.workout.findUnique({
         where: { id: templateId },
         include: { SetEntries: { orderBy: { createdAt: "asc" } } },
       })
-    : await prisma.workout.findFirst({
-        orderBy: { date: "desc" },
-        include: { SetEntries: { orderBy: { createdAt: "asc" } } },
-      });
+    : null;
 
   if (!template) {
-    redirect("/workouts/new");
+    const workout = await prisma.workout.create({
+      data: {
+        date: new Date(),
+        notes: `Workout ${templateName}`,
+      },
+    });
+    redirect(`/workouts/${workout.id}`);
   }
 
   const date = new Date();
   const newWorkout = await prisma.workout.create({
     data: {
       date,
-      notes: template.notes ? `${template.notes} (copied from ${template.date.toLocaleDateString()})` : `Copied from ${template.date.toLocaleDateString()}`,
+      notes: `Workout ${templateName}`,
     },
   });
 

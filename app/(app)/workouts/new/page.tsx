@@ -1,51 +1,53 @@
-import { createWorkout, createWorkoutFromTemplate } from "@/app/actions";
+import { createWorkoutFromTemplate } from "@/app/actions";
 import { prisma } from "@/lib/db";
 
+type WorkoutTemplateName = "A" | "B";
+
+function getWorkoutTemplateName(notes: string | null): WorkoutTemplateName | null {
+  const match = notes?.trim().toUpperCase().match(/^(?:WORKOUT\s+)?([AB])(?:\b|\s|\()/);
+  return match?.[1] === "A" || match?.[1] === "B" ? match[1] : null;
+}
+
 export default async function NewWorkoutPage() {
-  const today = new Date().toISOString().split("T")[0];
   const recentWorkouts = await prisma.workout.findMany({
     orderBy: { date: "desc" },
-    take: 5,
+    take: 50,
     include: { _count: { select: { SetEntries: true } } },
   });
+
+  const latestTemplates = new Map<WorkoutTemplateName, (typeof recentWorkouts)[number]>();
+  for (const workout of recentWorkouts) {
+    const templateName = getWorkoutTemplateName(workout.notes);
+    if (templateName && !latestTemplates.has(templateName)) {
+      latestTemplates.set(templateName, workout);
+    }
+  }
 
   return (
     <div className="stack" style={{ maxWidth: "32rem" }}>
       <h1>Log workout</h1>
+      <p className="muted">Start Workout A or B with the exercises and values from the latest matching session.</p>
 
-      <form action={createWorkout} className="card stack">
-        <label htmlFor="date">Date</label>
-        <input id="date" name="date" type="date" defaultValue={today} required />
-
-        <label htmlFor="notes">Notes</label>
-        <textarea id="notes" name="notes" rows={3} placeholder="Optional session notes" />
-
-        <div className="row">
-          <button type="submit" className="btn primary">Start workout</button>
-        </div>
-      </form>
-
-      {recentWorkouts.length > 0 && (
-        <section className="card stack">
-          <h2 style={{ margin: 0 }}>Copy an earlier workout</h2>
-          <p className="muted">Pick the session whose structure you want to repeat.</p>
-          <ul className="stack" style={{ gap: "0.5rem", listStyle: "none", padding: 0, margin: 0 }}>
-            {recentWorkouts.map((workout) => (
-              <li key={workout.id}>
-                <form action={createWorkoutFromTemplate} className="row" style={{ gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
-                  <input type="hidden" name="templateId" value={workout.id} />
-                  <span style={{ flex: 1 }}>
-                    <strong>{workout.date.toLocaleDateString()}</strong>
-                    {" — "}
-                    {workout._count.SetEntries} sets
-                  </span>
-                  <button type="submit" className="btn">Use as template</button>
-                </form>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+      {(["A", "B"] as const).map((templateName) => {
+        const template = latestTemplates.get(templateName);
+        return (
+          <section key={templateName} className="card stack">
+            <h2 style={{ margin: 0 }}>Workout {templateName}</h2>
+            <p className="muted">
+              {template
+                ? `Last tracked ${template.date.toLocaleDateString()} · ${template._count.SetEntries} sets`
+                : "No previous session yet. Start with an empty workout."}
+            </p>
+            <form action={createWorkoutFromTemplate}>
+              <input type="hidden" name="templateName" value={templateName} />
+              {template && <input type="hidden" name="templateId" value={template.id} />}
+              <button type="submit" className="btn primary">
+                Start Workout {templateName}
+              </button>
+            </form>
+          </section>
+        );
+      })}
     </div>
   );
 }
