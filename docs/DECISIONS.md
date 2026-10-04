@@ -36,6 +36,7 @@
 
 | Date | Scope | Result | Gaps |
 |---|---|---|---|
+| 2026-10-04 | Preview, ~390×844 mobile emulation (reduced scope at user's request): add-set panels hidden by default, `+ Add set` opens panel below sets, two consecutive sets added (fields reset, unit kept), `Done` collapses, three existing set edits persisted after reload. Mock workout deleted, original 16 workouts restored. | Pass | Panel-switch exclusivity, desktop sanity, physical iPhone not tested. |
 | 2026-09 | Preview, ~390×844 mobile emulation: login, A/B starters (18 A sets / 17 B sets copied incl. reps, weights, unit, RIR/RPE, notes), exact `Workout A/B` notes, vertical editing + persistence, adding a new exercise, scrolling without covered inputs, repeating A copies latest values. Temporary workouts deleted, original 9 workouts restored. | Pass | Physical iPhone Safari and on-screen keyboard not tested; quick "Add set" on an existing exercise not exercised. |
 | 2026-09 | Production post-merge "typical gym flow" (start latest A/B, ~5 rep/weight changes, save, verify, delete). | Not completed: blocked by stale Production `APP_PASSPHRASE` (fixed + redeployed), then test tooling quota ran out. No production data was touched. | Rerun when possible. |
 
