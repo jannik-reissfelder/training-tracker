@@ -8,7 +8,7 @@ A single-user personal training log with a built-in analytics layer.
 
 ### Core functional requirements
 
-- Log workouts by date and notes.
+- Log workouts by date and notes; start a new workout from the latest **Workout A** or **Workout B** session (exercises + set values copied, notes set to exactly `Workout A`/`Workout B`).
 - Add/edit/delete sets per workout (exercise, reps, weight, unit, optional RIR/RPE, optional notes).
 - Exercise library with seeded system exercises; user can add new ones.
 - Dashboard: recent workouts, quick counts, signals, Progress Verdict.
@@ -24,7 +24,7 @@ A single-user personal training log with a built-in analytics layer.
 - Deployed on Vercel; database is Vercel Postgres (Neon) on the free/hobby tier.
 - No cost to the user at current usage.
 - Deterministic analysis must be testable and unit-tested (`vitest`).
-- Minimal, mobile-friendly UI; server-rendered where possible.
+- Minimal, **mobile-first** UI (primary use: logging a workout on a phone in the gym); server-rendered where possible. No sticky overlays over inputs; vertical labeled fields on small screens; secondary forms (e.g. add set) collapsed until requested. See `docs/DECISIONS.md`.
 - `next/headers` `cookies()` returns a `Promise` in this Next.js version — always `await` it.
 
 ---
@@ -228,6 +228,8 @@ lib/                  Business logic
 docs/
   training-philosophy.md   Grounding document for the coach
   ARCHITECTURE.md          This file
+  HANDOFF.md               Practical "do not break this" guide
+  DECISIONS.md             Decision log, user preferences, learnings, testing history
 
 prisma/
   schema.prisma
@@ -242,6 +244,8 @@ prisma/
 - **Always `await cookies()`** in server actions/components. It is a `Promise<ReadonlyRequestCookies>` in this Next.js version.
 - **Server actions are in `app/actions.ts`** and are the primary mutation path. Forms use `action={someAction}`.
 - **Uncontrolled set forms**: each existing set row is a server-action form; the `WorkoutForm` is a client component that adds a `blink` class to the Save button via `onChange` and `useState`.
+- **Collapsible add-set form**: per exercise, the `createSet` form is only rendered when `addSetExerciseId === group.exerciseId` (toggled by `+ Add set` / `Done`). It stays open after submit; `key={group.sets.length}` resets its fields after the server revalidates.
+- **Workout A/B templates**: `app/(app)/workouts/new/page.tsx` detects the template from workout notes (`getWorkoutTemplateName`) over the latest 50 workouts; `createWorkoutFromTemplate` (only accepts `"A"`/`"B"`) copies sets in `createdAt` order and writes notes `Workout A`/`Workout B`. Keep that note format stable — detection depends on it.
 - **Week anchors**: use `formatWeekKey(latestWorkoutDate)`, not `new Date()`, for weekly charts and judge/coach weekly logic.
 - **Cold start**: keep the `4 sessions or 14 days` guard; do not let the judge or coach emit misleading decline signals on first workouts.
 - **Prisma migrations**: require `DIRECT_URL`; use `DATABASE_URL` for runtime queries.
