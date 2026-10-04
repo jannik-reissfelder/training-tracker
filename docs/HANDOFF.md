@@ -11,7 +11,16 @@
 - **Prisma `DIRECT_URL`** is required for migrations (`pg_advisory_lock` does not work over pooled Neon). Runtime queries use `DATABASE_URL`.
 - **`await cookies()`** — `cookies()` from `next/headers` is a Promise in Next.js 16 here.
 
+- **Mobile-first workout entry.** The owner logs workouts on a phone mid-session. Do not add sticky/fixed bars over the form, keep set fields vertical and labeled under 40rem, and keep secondary forms collapsed by default. Read `docs/DECISIONS.md` for the full decision log and user preferences.
+
 ## 2. How to extend the app safely
+
+### Changing the workout entry UI (`components/workout-form.tsx`)
+
+1. Verify on a ~390 px portrait viewport first: no control may cover an input while scrolling, and per-exercise cards should stay short (existing sets visible, add-set form collapsed).
+2. Keep `createSet`/`updateSet`/`deleteSet` field names unchanged; server actions read them by name.
+3. When UI-testing against the real database, delete every mock workout afterwards and confirm the workout count matches the starting state.
+4. Log the decision and any learnings in `docs/DECISIONS.md`.
 
 ### Adding a new analysis metric
 
@@ -45,12 +54,15 @@
 | `prisma migrate deploy` fails on Vercel | `directUrl` missing or using pooled URL | Set `DIRECT_URL` (Neon direct/un-pooled) |
 | Coach says "add more sets" contrary to philosophy | Prompt or Stage A rule over-prioritizes volume | Review `lib/coach/index.ts` system prompt and `lib/coach/rules.ts` thresholds |
 | Save button does not blink on edit | `onChange` is on form instead of inputs | Attach `markDirty` to each input/select in `components/workout-form.tsx` |
+| Vercel Preview build fails with `Missing required environment variable: DATABASE_URL` | Env var only set for Production | Add it for the Preview environment too |
+| Login says "Invalid passphrase" on a deployment | `APP_PASSPHRASE` differs between Vercel environments / Devin secret | Compare and sync the values, then redeploy |
+| A/B starter shows "no previous workout" | Workout notes do not start with `Workout A`/`A`/`Workout B`/`B` | Fix the notes; copied workouts always get `Workout A`/`Workout B` |
 
 ## 4. Debugging checklist
 
 1. Check the DB directly: `npx prisma studio` or query with `node -e` using `lib/db.ts`.
 2. Run `npm test` after any change to judge/coach/rules.
-3. Run `npm run lint` and `npm run build` before pushing.
+3. Run `npm run lint`, `npx tsc --noEmit`, and `npm test` before pushing. `npm run build` needs a reachable Postgres (it migrates, seeds and prerenders); without one, rely on the Vercel Preview build.
 4. Inspect server actions in `app/actions.ts` — most business logic flows through there.
 5. The dashboard (`app/(app)/page.tsx`) and stats page (`app/(app)/stats/page.tsx`) are the main consumers of `analyze()` and `judgeProgress()`.
 6. For LLM issues, set `GEMINI_API_KEY` to a real key; a missing or `mock` key throws and triggers fallback text.
@@ -71,7 +83,8 @@
 
 ## 7. Next natural improvements
 
-- **Named templates / A-B program support**: right now "copy last workout" lists the last 5 sessions. True A/B templates would let the user save and name a session structure.
+- **Prefill add-set values**: the collapsed add-set form could default reps/weight to the previous set (unit already does).
+- **Physical-device check**: verify iPhone Safari with the on-screen keyboard (only emulation has been tested so far).
 - **Supervision / plateaus**: when the judge turns `progressing`/`stagnating`/`declining`, surface a single highlighted action on the dashboard.
 - **Better cold-start onboarding**: a one-time "log your first 3–4 sessions, then come back for a verdict" message instead of a generic `insufficient-data` card.
 - **Data export**: CSV export of workouts/sets for backup.
@@ -81,4 +94,5 @@
 
 - Start with `docs/ARCHITECTURE.md` for intent and first principles.
 - Keep this file next to it for the practical "do not break this" list.
+- `docs/DECISIONS.md` holds the decision log, user preferences, ops learnings, and testing history — update it with every meaningful change.
 - When in doubt, write a deterministic test in `lib/judge.test.ts` or `lib/coach/rules.test.ts` before changing code.

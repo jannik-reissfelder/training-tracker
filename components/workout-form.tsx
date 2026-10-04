@@ -84,6 +84,7 @@ export default function WorkoutForm({
   const [dirtySetIds, setDirtySetIds] = useState<Set<string>>(new Set());
   const [date, setDate] = useState(workout.date);
   const [notes, setNotes] = useState(workout.notes || "");
+  const [addSetExerciseId, setAddSetExerciseId] = useState<string | null>(null);
 
   function markDirty(setId: string) {
     setDirtySetIds((prev) => new Set(prev).add(setId));
@@ -172,85 +173,17 @@ export default function WorkoutForm({
         <div className="stack">
           {grouped.map((group) => (
             <section key={group.exerciseId} className="card stack">
-              <div className="row exercise-card-header" style={{ justifyContent: "space-between", alignItems: "center" }}>
+              <div className="row exercise-card-header">
                 <h3 style={{ margin: 0 }}>{group.exerciseName}</h3>
-                <form
-                  action={createSet}
-                  key={group.sets.length}
-                  className="row set-editor"
-                  style={{ gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}
-                >
-                  <input type="hidden" name="workoutId" value={workout.id} />
-                  <input type="hidden" name="exerciseId" value={group.exerciseId} />
-                  <label className="set-field">
-                    <span className="set-field-label">Reps</span>
-                    <input
-                      name="reps"
-                      type="number"
-                      min={0}
-                      required
-                      placeholder="Reps"
-                    />
-                  </label>
-                  <span className="set-multiply">×</span>
-                  <label className="set-field">
-                    <span className="set-field-label">Weight</span>
-                    <input
-                      name="weight"
-                      type="number"
-                      step="0.01"
-                      min={0}
-                      required
-                      placeholder="Weight"
-                    />
-                  </label>
-                  <label className="set-field">
-                    <span className="set-field-label">Unit</span>
-                    <select name="unit" defaultValue="kg" required>
-                      <option value="kg">kg</option>
-                      <option value="lb">lb</option>
-                    </select>
-                  </label>
-                  <label className="set-field">
-                    <span className="set-field-label">RIR</span>
-                    <input
-                      name="rir"
-                      type="number"
-                      min={0}
-                      max={10}
-                      placeholder="RIR"
-                    />
-                  </label>
-                  <label className="set-field">
-                    <span className="set-field-label">RPE</span>
-                    <input
-                      name="rpe"
-                      type="number"
-                      min={0}
-                      max={10}
-                      step="0.5"
-                      placeholder="RPE"
-                    />
-                  </label>
-                  <label className="set-field set-field-notes">
-                    <span className="set-field-label">Notes</span>
-                    <input name="notes" placeholder="Notes" />
-                  </label>
-                  <button type="submit" className="btn primary">
-                    Add set
+                {addSetExerciseId !== group.exerciseId && (
+                  <button
+                    type="button"
+                    className="btn btn-small"
+                    onClick={() => setAddSetExerciseId(group.exerciseId)}
+                  >
+                    + Add set
                   </button>
-                </form>
-                <form
-                  action={deleteExerciseFromWorkout}
-                  className="row exercise-remove-form"
-                  style={{ gap: "0.5rem", alignItems: "center" }}
-                >
-                  <input type="hidden" name="workoutId" value={workout.id} />
-                  <input type="hidden" name="exerciseId" value={group.exerciseId} />
-                  <button type="submit" className="btn danger">
-                    Remove exercise
-                  </button>
-                </form>
+                )}
               </div>
 
               <ul className="stack" style={{ gap: "0.5rem", listStyle: "none", padding: 0, margin: 0 }}>
@@ -348,6 +281,89 @@ export default function WorkoutForm({
                   </li>
                 ))}
               </ul>
+
+              {addSetExerciseId === group.exerciseId && (
+                <div className="add-set-panel stack">
+                  <span className="set-number" style={{ fontWeight: 600 }}>New set</span>
+                  <form
+                    action={createSet}
+                    key={group.sets.length}
+                    className="row set-editor"
+                    style={{ gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}
+                  >
+                    <input type="hidden" name="workoutId" value={workout.id} />
+                    <input type="hidden" name="exerciseId" value={group.exerciseId} />
+                    <label className="set-field">
+                      <span className="set-field-label">Reps</span>
+                      <input
+                        name="reps"
+                        type="number"
+                        min={0}
+                        required
+                        placeholder="Reps"
+                      />
+                    </label>
+                    <span className="set-multiply">×</span>
+                    <label className="set-field">
+                      <span className="set-field-label">Weight</span>
+                      <input
+                        name="weight"
+                        type="number"
+                        step="0.01"
+                        min={0}
+                        required
+                        placeholder="Weight"
+                      />
+                    </label>
+                    <label className="set-field">
+                      <span className="set-field-label">Unit</span>
+                      <select name="unit" defaultValue={group.sets.at(-1)?.unit ?? "kg"} required>
+                        <option value="kg">kg</option>
+                        <option value="lb">lb</option>
+                      </select>
+                    </label>
+                    <label className="set-field">
+                      <span className="set-field-label">RIR</span>
+                      <input
+                        name="rir"
+                        type="number"
+                        min={0}
+                        max={10}
+                        placeholder="RIR"
+                      />
+                    </label>
+                    <label className="set-field">
+                      <span className="set-field-label">RPE</span>
+                      <input
+                        name="rpe"
+                        type="number"
+                        min={0}
+                        max={10}
+                        step="0.5"
+                        placeholder="RPE"
+                      />
+                    </label>
+                    <label className="set-field set-field-notes">
+                      <span className="set-field-label">Notes</span>
+                      <input name="notes" placeholder="Notes" />
+                    </label>
+                    <button type="submit" className="btn primary">
+                      Add set
+                    </button>
+                    <button type="button" className="btn" onClick={() => setAddSetExerciseId(null)}>
+                      Done
+                    </button>
+                  </form>
+                </div>
+              )}
+
+              <form action={deleteExerciseFromWorkout} className="exercise-remove-form">
+                <input type="hidden" name="workoutId" value={workout.id} />
+                <input type="hidden" name="exerciseId" value={group.exerciseId} />
+                <button type="submit" className="btn danger btn-small">
+                  Remove exercise
+                </button>
+              </form>
             </section>
           ))}
         </div>

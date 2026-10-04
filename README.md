@@ -64,6 +64,8 @@ After provisioning, deploy as usual. The first deploy will run migrations and se
 
 ## Training philosophy
 
+Project docs for contributors and agents: `docs/ARCHITECTURE.md` (source of truth), `docs/HANDOFF.md` (practical guide), `docs/DECISIONS.md` (decision log, user preferences, learnings).
+
 A placeholder for the grounding document is at `docs/training-philosophy.md`. The Coach's system prompt reads this file at request time and falls back to the stored config when the placeholder is still present.
 
 ## Notes
